@@ -1,0 +1,52 @@
+/*
+ * Copyright (c) 2022 Addiva Elektronik AB
+ * Copyright (c) 2020 Lemonbeat GmbH (semtech_sx1272mb2das)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+ /* Module pinout
+  *	SCK		D13
+  * MOSI	D11
+  * MISO	D12
+  * NSS		D10
+  * DIO0	D2
+  * DIO1	D3
+  * DIO2	D4
+  * DIO3	D5
+  * DIO4a	D8
+  * DIO4b	A3
+  * DIO5	D9
+  * RxTx	A4  (if R16 is mounted instead of R15)
+  * NRESET	A0
+  */
+
+/ {
+	aliases {
+		lora0 = &lora;
+	};
+};
+
+&arduino_spi {
+	status = "okay";
+
+	cs-gpios = <&arduino_header 16 GPIO_ACTIVE_LOW>;	/* D10 */
+
+	lora: sx1276@0 {
+		compatible = "semtech,sx1276";
+		reg = <0x0>;
+		label = "sx1276";
+		spi-max-frequency = <3000000>;
+
+		reset-gpios = <&arduino_header 0 GPIO_ACTIVE_LOW>;   /* A0 */
+
+		dio-gpios = <&arduino_header 8 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>,	   /* DIO0 is D2 */
+		            <&arduino_header 9 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>,	   /* DIO1 is D3 */
+			    	<&arduino_header 10 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>,	   /* DIO2 is D4 */
+			    	<&arduino_header 11 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>,	   /* DIO3 is D5 */
+			    	<&arduino_header 14 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>,	   /* DIO3 is D8 */
+			    	<&arduino_header 15 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;	   /* DIO3 is D9 */
+
+		power-amplifier-output = "rfo";
+	};
+};

@@ -1,0 +1,6 @@
+# Copyright (c) 2022 Addiva Elektronik AB
+# Copyright (c) 2020 Lemonbeat GmbH (semtech_sx1272mb2das)
+# SPDX-License-Identifier: Apache-2.0
+
+config SHIELD_SEMTECH_SX1276MB1MAS
+	def_bool $(shields_list_contains,semtech_sx1276mb1mas)
