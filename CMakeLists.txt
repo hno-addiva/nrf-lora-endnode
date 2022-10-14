@@ -13,6 +13,7 @@ target_sources(app PRIVATE ${app_sources})
 zephyr_include_directories(
   configuration/${BOARD}
   configuration/default
+  src/modules
   )
 
-#target_sources(app PRIVATE src/modules/module_lorawan.c)
+target_sources(app PRIVATE src/modules/module_lorawan.c)
