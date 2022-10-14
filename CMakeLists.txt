@@ -7,3 +7,12 @@ project(lorawan)
 
 FILE(GLOB app_sources src/*.c)
 target_sources(app PRIVATE ${app_sources})
+
+
+# Add include directory for board specific CAF def files
+zephyr_include_directories(
+  configuration/${BOARD}
+  configuration/default
+  )
+
+#target_sources(app PRIVATE src/modules/module_lorawan.c)
