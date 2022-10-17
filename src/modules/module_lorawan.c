@@ -8,22 +8,32 @@
 
 #define MODULE lora_sensor
 
+#include <zephyr/zephyr.h>
+#include <zephyr/kernel.h>
+#include <caf/events/module_state_event.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/settings/settings.h>
 #include <zephyr/device.h>
 #include <zephyr/lorawan/lorawan.h>
-#include <zephyr/zephyr.h>
-#include <zephyr/logging/log.h>
-#include <app_event_manager.h>
-#include <caf/events/module_state_event.h>
 
 LOG_MODULE_REGISTER(MODULE);
 
-/* Customize based on network configuration */
-#define LORAWAN_DEV_EUI			{ 0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x05, 0x4D, 0x7E }
-#define LORAWAN_JOIN_EUI		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
-#define LORAWAN_APP_KEY			{ 0xF0, 0x48, 0x8E, 0x51, 0x3A, 0xB3, 0x83, 0xBB, 0x35, 0x71, 0x1C, 0x4E, 0xE6, 0x0E, 0x89, 0x25 }
-
+// TODO: Add Kconfig parameter for this
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
 
+// Module state
+enum {
+	M_STATE_UNINITIALIZED = 0,
+	M_STATE_READY
+} module_state = {
+	M_STATE_UNINITIALIZED
+};
+
+/* Customize based on network configuration */
+static uint8_t dev_eui[] =		{ 0x00, 0x83, 0xD5, 0x7e, 0xD0, 0x05, 0x4D, 0x7E }; // { 0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x05, 0x4D, 0x7E }
+static uint8_t join_eui[] = 	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+static uint8_t app_key[] = 		{ 0xF0, 0x48, 0x8E, 0x51, 0x3A, 0xB3, 0x83, 0xBB, 0x35, 0x71, 0x1C, 0x4E, 0xE6, 0x0E, 0x89, 0x25 };
+static uint32_t dev_nonce = 0;
 
 /*
  * Work Queue
@@ -94,9 +104,6 @@ static void lorwan_datarate_changed(enum lorawan_datarate dr)
 static void lorawan_join_request(void)
 {
 	struct lorawan_join_config join_cfg;
-	uint8_t dev_eui[] = LORAWAN_DEV_EUI;
-	uint8_t join_eui[] = LORAWAN_JOIN_EUI;
-	uint8_t app_key[] = LORAWAN_APP_KEY;
 
 	// TODO: Make these settings
 	join_cfg.mode = LORAWAN_ACT_OTAA;
@@ -104,9 +111,11 @@ static void lorawan_join_request(void)
 	join_cfg.otaa.join_eui = join_eui;
 	join_cfg.otaa.app_key = app_key;
 	join_cfg.otaa.nwk_key = app_key;
+	join_cfg.otaa.dev_nonce = dev_nonce;
 
 	LOG_INF("Joining network over OTAA");
 	int ret = lorawan_join(&join_cfg);
+	// TODO: Save dev_nonce from the LoRa layer somehow.
 	if (ret < 0) {
 		LOG_ERR("lorawan_join_network failed: %d", ret);
 		return;
@@ -140,6 +149,49 @@ static void initialize_lora(void)
 
 	lorawan_join_request();
 }
+
+
+/*
+ * Settings
+ */
+
+static int process_setting(const char *name, void *data, int len, settings_read_cb read_cb, void *cb_arg)
+{
+	const char *next;
+	if (settings_name_steq(name, STRINGIFY(name), &next) && !next) {
+		(void)read_cb(cb_arg, &name, sizeof(name));
+		LOG_HEXDUMP_INF(name, sizeof(name), STRINGIFY(name));
+		return 0;
+	}
+	return -1;
+}
+
+static int m_settings_set(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg)
+{
+	#define SETTING(name) \
+		if (process_setting(STRINGIFY(name), &name, sizeof(name), read_cb, cb_arg) == 0) \
+			return 0
+	SETTING(dev_eui);
+	SETTING(join_eui);
+	SETTING(app_key);
+	SETTING(dev_nonce);
+	return -1;
+}
+
+int m_settings_commit(void)
+{
+	// Warning: Initial commit is early during startup while main is initializing.
+	if (module_state == M_STATE_UNINITIALIZED)
+		return 0;
+
+	LOG_INF("Settings committed");
+	// Do what is needed to apply/activate new settings
+	return -1;
+}
+
+// _get is for runtime settings. Not used (NULL)
+// _export is for settings_save() of runtime settings. Not used (NULL)
+SETTINGS_STATIC_HANDLER_DEFINE(MODULE, STRINGIFY(MODULE), NULL, m_settings_set, m_settings_commit, NULL);
 
 /*
  * CAF Module
