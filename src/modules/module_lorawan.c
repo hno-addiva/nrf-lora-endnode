@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define MODULE lora
+#define MODULE lora_sensor
 
 #include <zephyr/device.h>
 #include <zephyr/lorawan/lorawan.h>
@@ -150,10 +150,10 @@ static void module_lora_initialize(void)
 	LOG_DBG("initializing");
 
 	// Start our work queue, with a meaningful name
-	#define K_WORK_NAME(_name) \
-		&(struct k_work_queue_config){.name=_name}
+	#define K_WORK_MODULE_NAME \
+		&(struct k_work_queue_config){STRINGIFY(MODULE)}
 	k_work_queue_start(&work_q, stack_area, K_THREAD_STACK_SIZEOF(stack_area),
-					CONFIG_SYSTEM_WORKQUEUE_PRIORITY, K_WORK_NAME("lora"));
+					CONFIG_SYSTEM_WORKQUEUE_PRIORITY, K_WORK_MODULE_NAME);
 					 // TODO: Assign proper thread priority
 	
 	initialize_lora();
