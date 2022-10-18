@@ -89,10 +89,24 @@ struct join_context {
 	// The join parameters are global, noting unique here
 };
 
+static int is_empty(void *data, size_t size)
+{
+	uint8_t *p = data;
+	for (int i = 0; i < size; i++)
+		if (*p++)
+			return 0;
+	return 1;
+}
+
 static void join_task(struct k_work *work)
 {
 	struct join_context __unused *ctx = CONTAINER_OF(work, struct join_context, work);
 	struct lorawan_join_config join_cfg;
+
+	if (is_empty(dev_eui, sizeof(dev_eui))) {
+		LOG_ERR("dev_eui blank");
+		return;
+	}
 
 	// TODO: Make these settings
 	join_cfg.mode = LORAWAN_ACT_OTAA;
