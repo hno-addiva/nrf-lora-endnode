@@ -180,6 +180,11 @@ static void initialize_lora(void)
 
 	lorawan_register_downlink_callback(&downlink_cb);
 	lorawan_register_dr_changed_callback(lorwan_datarate_changed);
+}
+
+static void lora_reload(void)
+{
+	// LoRa module reloaded. Start the communication
 
 	work_submit(send_join);
 }
@@ -221,7 +226,9 @@ int m_settings_commit(void)
 		return 0;
 
 	LOG_INF("Settings committed");
-	// Do what is needed to apply/activate new settings
+	
+	// Rejoin network with new settings
+	lora_reload();
 	return -1;
 }
 
@@ -235,7 +242,7 @@ SETTINGS_STATIC_HANDLER_DEFINE(MODULE, STRINGIFY(MODULE), NULL, m_settings_set, 
 
 static void module_lora_initialize(void)
 {
-	LOG_DBG("initializing");
+	LOG_INF("initializing");
 
 	// Start our work queue, with a meaningful name
 	#define K_WORK_MODULE_NAME \
@@ -245,9 +252,10 @@ static void module_lora_initialize(void)
 					 // TODO: Assign proper thread priority
 	
 	initialize_lora();
-
+	module_state = M_STATE_READY;
 	module_set_state(MODULE_STATE_READY);
-	LOG_DBG("initialized");
+	lora_reload();
+	LOG_INF("initialized");
 }
 
 static bool handle_lora_module_state_event(const struct module_state_event *evt)
