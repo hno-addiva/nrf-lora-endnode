@@ -150,17 +150,17 @@ static void initialize_lora(void)
 	lorawan_join_request();
 }
 
-
 /*
  * Settings
  */
 
-static int process_setting(const char *name, void *data, int len, settings_read_cb read_cb, void *cb_arg)
+// Wrapper function with common processing per setting
+static int get_setting(const char *name, const char *key, void *data, int len, settings_read_cb read_cb, void *cb_arg)
 {
 	const char *next;
-	if (settings_name_steq(name, STRINGIFY(name), &next) && !next) {
+	if (settings_name_steq(name, key, &next) && !next) {
 		(void)read_cb(cb_arg, &name, sizeof(name));
-		LOG_HEXDUMP_INF(name, sizeof(name), STRINGIFY(name));
+		LOG_HEXDUMP_INF(name, sizeof(name), "Setting " STRINGIFY(name));
 		return 0;
 	}
 	return -1;
@@ -168,13 +168,15 @@ static int process_setting(const char *name, void *data, int len, settings_read_
 
 static int m_settings_set(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg)
 {
-	#define SETTING(name) \
-		if (process_setting(STRINGIFY(name), &name, sizeof(name), read_cb, cb_arg) == 0) \
-			return 0
-	SETTING(dev_eui);
-	SETTING(join_eui);
-	SETTING(app_key);
-	SETTING(dev_nonce);
+	#define SETTING(setting) (get_setting(name, STRINGIFY(setting), &setting, sizeof(setting), read_cb, cb_arg) == 0)
+	if (SETTING(dev_eui))
+		return 0;
+	if (SETTING(join_eui))
+		return 0;
+	if (SETTING(app_key))
+		return 0;
+	if (SETTING(dev_nonce))
+		return 0;
 	return -1;
 }
 
