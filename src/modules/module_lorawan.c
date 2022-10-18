@@ -148,6 +148,13 @@ static void dl_callback(uint8_t port, bool data_pending,
 		LOG_HEXDUMP_INF(data, len, "Payload: ");
 	}
 }
+static struct lorawan_downlink_cb downlink_cb = {
+	.port = LW_RECV_PORT_ANY,
+	.cb = dl_callback
+};
+
+
+
 
 static void lorwan_datarate_changed(enum lorawan_datarate dr)
 {
@@ -161,11 +168,6 @@ static void initialize_lora(void)
 {
 	const struct device *lora_dev;
 	int ret;
-
-	struct lorawan_downlink_cb downlink_cb = {
-		.port = LW_RECV_PORT_ANY,
-		.cb = dl_callback
-	};
 
 	lora_dev = DEVICE_DT_GET(DT_ALIAS(lora0));
 	if (!device_is_ready(lora_dev)) {
