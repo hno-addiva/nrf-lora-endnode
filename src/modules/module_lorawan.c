@@ -42,12 +42,12 @@ static K_THREAD_STACK_DEFINE(stack_area, 2048);
 static struct k_work_q work_q;
 
 #define work_submit(name) \
-	k_work_submit_to_queue(&work_q, &name##_context.work)
+	k_work_submit_to_queue(&work_q, &name##_work.work)
 #define WORK_INIT(fn) \
 	.work = Z_WORK_INITIALIZER(fn)
 
 /*
- * send work
+ * send lora message
  */
 
 struct send_context {
@@ -61,13 +61,13 @@ static void send_task(struct k_work *work)
 	struct send_context *ctx = CONTAINER_OF(work, struct send_context, work);
 	LOG_HEXDUMP_DBG(ctx->data, ctx->len, "Message");
 
-	int ret = lorawan_send(2,ctx->data, ctx->len, LORAWAN_MSG_CONFIRMED);
+	// TODO: support unconfirmed messages, should be default.
+	int ret = lorawan_send(2, ctx->data, ctx->len, LORAWAN_MSG_CONFIRMED);
 
 	/*
-	 * Note: The stack may return -EAGAIN if the provided data
+	 * Warning: The stack may return -EAGAIN if the provided data
 	 * length exceeds the maximum possible one for the region and
-	 * datarate. But since we are just sending the same data here,
-	 * we'll just continue.
+	 * datarate.
 	 */
 	if (ret < 0) {
 		LOG_ERR("lorawan_send failed: %d", ret);
@@ -77,32 +77,24 @@ static void send_task(struct k_work *work)
 	LOG_INF("Data sent!");
 }
 
-static struct send_context send_hello_context = {
+static struct send_context send_hello_work = {
 	WORK_INIT(send_task),
 	.data = "Hello World",
 	.len = 11,
 };
 
-static void dl_callback(uint8_t port, bool data_pending,
-			int16_t rssi, int8_t snr,
-			uint8_t len, const uint8_t *data)
-{
-	LOG_INF("Port %d, Pending %d, RSSI %ddB, SNR %ddBm", port, data_pending, rssi, snr);
-	if (data) {
-		LOG_HEXDUMP_INF(data, len, "Payload: ");
-	}
-}
+/*
+ * Join LoRaWAN network
+ */
 
-static void lorwan_datarate_changed(enum lorawan_datarate dr)
-{
-	uint8_t unused, max_size;
+struct join_context {
+	struct k_work work;
+	// The join parameters are global, noting unique here
+};
 
-	lorawan_get_payload_sizes(&unused, &max_size);
-	LOG_INF("New Datarate: DR_%d, Max Payload %d", dr, max_size);
-}
-
-static void lorawan_join_request(void)
+static void join_task(struct k_work *work)
 {
+	struct join_context __unused *ctx = CONTAINER_OF(work, struct join_context, work);
 	struct lorawan_join_config join_cfg;
 
 	// TODO: Make these settings
@@ -120,6 +112,32 @@ static void lorawan_join_request(void)
 		LOG_ERR("lorawan_join_network failed: %d", ret);
 		return;
 	}
+}
+
+static struct join_context send_join_work = {
+	WORK_INIT(join_task),
+};
+
+/*
+ * LoRaWAN callbacks
+ */
+
+static void dl_callback(uint8_t port, bool data_pending,
+			int16_t rssi, int8_t snr,
+			uint8_t len, const uint8_t *data)
+{
+	LOG_INF("Port %d, Pending %d, RSSI %ddB, SNR %ddBm", port, data_pending, rssi, snr);
+	if (data) {
+		LOG_HEXDUMP_INF(data, len, "Payload: ");
+	}
+}
+
+static void lorwan_datarate_changed(enum lorawan_datarate dr)
+{
+	uint8_t unused, max_size;
+
+	lorawan_get_payload_sizes(&unused, &max_size);
+	LOG_INF("New Datarate: DR_%d, Max Payload %d", dr, max_size);
 }
 
 static void initialize_lora(void)
@@ -147,7 +165,7 @@ static void initialize_lora(void)
 	lorawan_register_downlink_callback(&downlink_cb);
 	lorawan_register_dr_changed_callback(lorwan_datarate_changed);
 
-	lorawan_join_request();
+	work_submit(send_join);
 }
 
 /*
@@ -254,8 +272,15 @@ static int sh_lora_hello(const struct shell *shell, size_t argc, char **argv)
 	return 0;
 }
 
+static int sh_lora_join(const struct shell *shell, size_t argc, char **argv)
+{
+	work_submit(send_join);
+	return 0;
+}
+
 SHELL_STATIC_SUBCMD_SET_CREATE(module_shell,
 	SHELL_CMD_ARG(hello, NULL, "Send Hello World", sh_lora_hello, 0, 0),
+	SHELL_CMD_ARG(join, NULL, "Join LoRaWAN Network", sh_lora_join, 0, 0),
 #if 0
 	SHELL_CMD_ARG(dev_eui, NULL, "Get or set Dev EUI", sh_dev_eui, 0, 0),
 	SHELL_CMD_ARG(join_eui, NULL, "Get or set Join EUI", sh_join_eui, 0, 0),
