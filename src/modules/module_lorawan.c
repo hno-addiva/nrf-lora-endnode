@@ -193,8 +193,8 @@ static int get_setting(const char *name, const char *key, void *data, int len, s
 {
 	const char *next;
 	if (settings_name_steq(name, key, &next) && !next) {
-		(void)read_cb(cb_arg, &name, sizeof(name));
-		LOG_HEXDUMP_INF(name, sizeof(name), "Setting " STRINGIFY(name));
+		(void)read_cb(cb_arg, data, len);
+		LOG_HEXDUMP_INF(data, len, name);
 		return 0;
 	}
 	return -1;
