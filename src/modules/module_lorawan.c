@@ -16,10 +16,7 @@
 #include <zephyr/device.h>
 #include <zephyr/lorawan/lorawan.h>
 
-LOG_MODULE_REGISTER(MODULE);
-
-// TODO: Add Kconfig parameter for this
-#define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
+LOG_MODULE_REGISTER(MODULE, LOG_LEVEL_DBG);
 
 // Module state
 enum {
