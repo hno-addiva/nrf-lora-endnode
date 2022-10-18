@@ -38,10 +38,19 @@ static uint16_t dev_nonce = 0;
 static K_THREAD_STACK_DEFINE(stack_area, 2048);
 static struct k_work_q work_q;
 
-#define work_submit(name) \
-	k_work_submit_to_queue(&work_q, &name##_work.work)
+#define work_submit(ctxptr) \
+	k_work_submit_to_queue(&work_q, &(ctxptr)->work)
+#define work_init(ctxptr, fn) \
+	k_work_init(&(ctxptr)->work, fn)
 #define WORK_INIT(fn) \
 	.work = Z_WORK_INITIALIZER(fn)
+
+#define work_schedule(ctxptr, delay) \
+	k_work_schedule_for_queue(&work_q, &(ctxptr)->work, delay)
+#define work_delayable_init(ctxptr, fn) \
+	k_work_init_delayable(&(ctxptr)->work, fn)
+#define WORK_DELAYABLE_INIT(fn) \
+	.work = Z_WORK_DELAYABLE_INITIALIZER(fn)
 
 /*
  * send lora message
@@ -74,7 +83,7 @@ static void send_task(struct k_work *work)
 	LOG_INF("Data sent!");
 }
 
-static struct send_context send_hello_work = {
+static struct send_context send_hello = {
 	WORK_INIT(send_task),
 	.data = "Hello World",
 	.len = 11,
@@ -131,7 +140,7 @@ static void join_task(struct k_work *work)
 	}
 }
 
-static struct join_context send_join_work = {
+static struct join_context send_join = {
 	WORK_INIT(join_task),
 };
 
@@ -189,14 +198,14 @@ static void lora_reload(void)
 {
 	// LoRa module reloaded. Start the communication
 
-	work_submit(send_join);
+	work_submit(&send_join);
 }
 
 /*
  * Settings
  */
 
-// Wrapper function with common processing per setting
+// Wrapper function with common processing per setting, used by SETTINGS macros below
 static int get_setting(const char *name, const char *key, void *data, int len, settings_read_cb read_cb, void *cb_arg)
 {
 	const char *next;
@@ -208,9 +217,13 @@ static int get_setting(const char *name, const char *key, void *data, int len, s
 	return -1;
 }
 
+// Store setting TO dst variable
+#define SETTING_TO(setting, dst) (get_setting(name, STRINGIFY(setting), &dst, sizeof(dst), read_cb, cb_arg) == 0)
+// Store setting to variable by with same name
+#define SETTING(setting) SETTING_TO(setting, setting)
+
 static int m_settings_set(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg)
 {
-	#define SETTING(setting) (get_setting(name, STRINGIFY(setting), &setting, sizeof(setting), read_cb, cb_arg) == 0)
 	if (SETTING(dev_eui))
 		return 0;
 	if (SETTING(join_eui))
@@ -295,13 +308,13 @@ APP_EVENT_SUBSCRIBE(MODULE, module_state_event);
 
 static int sh_lora_hello(const struct shell *shell, size_t argc, char **argv)
 {
-	work_submit(send_hello);
+	work_submit(&send_hello);
 	return 0;
 }
 
 static int sh_lora_join(const struct shell *shell, size_t argc, char **argv)
 {
-	work_submit(send_join);
+	work_submit(&send_join);
 	return 0;
 }
 
