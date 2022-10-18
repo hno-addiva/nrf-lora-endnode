@@ -30,7 +30,7 @@ enum {
 static uint8_t dev_eui[] =		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 static uint8_t join_eui[] = 	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 static uint8_t app_key[] = 		{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-static uint32_t dev_nonce = 0;
+static uint16_t dev_nonce = 0;
 
 /*
  * Work Queue
@@ -119,11 +119,12 @@ static void join_task(struct k_work *work)
 	join_cfg.otaa.join_eui = join_eui;
 	join_cfg.otaa.app_key = app_key;
 	join_cfg.otaa.nwk_key = app_key;
-	join_cfg.otaa.dev_nonce = dev_nonce;
+	join_cfg.otaa.dev_nonce = dev_nonce++;
+	settings_save_one(STRINGIFY(MODULE) "/dev_nonce", &dev_nonce, sizeof(dev_nonce));
 
 	LOG_INF("Joining network over OTAA");
 	int ret = lorawan_join(&join_cfg);
-	// TODO: Save dev_nonce from the LoRa layer somehow.
+	
 	if (ret < 0) {
 		LOG_ERR("lorawan_join_network failed: %d", ret);
 		return;
