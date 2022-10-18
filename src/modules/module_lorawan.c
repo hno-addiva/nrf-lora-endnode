@@ -58,8 +58,8 @@ static void send_task(struct k_work *work)
 	struct send_context *ctx = CONTAINER_OF(work, struct send_context, work);
 	LOG_HEXDUMP_DBG(ctx->data, ctx->len, "Message");
 
-	// TODO: support unconfirmed messages, should be default.
-	int ret = lorawan_send(2, ctx->data, ctx->len, LORAWAN_MSG_CONFIRMED);
+	// TODO: support confirmed messages
+	int ret = lorawan_send(2, ctx->data, ctx->len, LORAWAN_MSG_UNCONFIRMED);
 
 	/*
 	 * Warning: The stack may return -EAGAIN if the provided data
