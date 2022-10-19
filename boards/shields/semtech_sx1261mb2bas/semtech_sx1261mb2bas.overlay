@@ -35,7 +35,7 @@
 
 		reset-gpios = <&arduino_header 0 GPIO_ACTIVE_LOW>;   /* A0 */
 
-		busy-gpios = <&arduino_header 9 GPIO_ACTIVE_LOW>;   /* D3 */
+		busy-gpios = <&arduino_header 9 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;   /* D3 */
 		dio1-gpios = <&arduino_header 11 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;	   /* D5 */
 
 		antenna-enable-gpios = <&arduino_header 14 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;	   /* D8 */
