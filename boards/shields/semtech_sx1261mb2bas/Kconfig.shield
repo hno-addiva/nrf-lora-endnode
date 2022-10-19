@@ -1,0 +1,5 @@
+# Copyright (c) 2022 Addiva Elektronik AB
+# SPDX-License-Identifier: Apache-2.0
+
+config SHIELD_SEMTECH_SX1261MB2BAS
+	def_bool $(shields_list_contains,semtech_sx1261mb2bas)

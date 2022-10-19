@@ -1,0 +1,43 @@
+/*
+ * Copyright (c) 2022 Addiva Elektronik AB
+ * Copyright (c) 2020 Lemonbeat GmbH (semtech_sx1272mb2das)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+ /* Module pinout
+  *	SCK		D13 (arduino spi)
+  * MOSI	D11 (arduino spi)
+  * MISO	D12 (arduino spi)
+  * NSS		D7
+  * BUSY	D3
+  * DIO1	D5
+  * ANT_SW	D8
+  * NRESET	A0
+  */
+
+/ {
+	aliases {
+		lora0 = &lora;
+	};
+};
+
+&arduino_spi {
+	status = "okay";
+
+	cs-gpios = <&arduino_header 13 GPIO_ACTIVE_LOW>;	/* D7 */
+
+	lora: sx1261@0 {
+		compatible = "semtech,sx1261";
+		reg = <0x0>;
+		label = "sx1261";
+		spi-max-frequency = <3000000>;
+
+		reset-gpios = <&arduino_header 0 GPIO_ACTIVE_LOW>;   /* A0 */
+
+		busy-gpios = <&arduino_header 9 GPIO_ACTIVE_LOW>;   /* D3 */
+		dio1-gpios = <&arduino_header 11 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;	   /* D5 */
+
+		antenna-enable-gpios = <&arduino_header 14 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;	   /* D8 */
+	};
+};
