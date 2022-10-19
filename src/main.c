@@ -41,6 +41,7 @@ static int cmd_reload(const struct shell *shell, size_t argc,
 {
 	LOG_INF("Reloading settings");
 	settings_load();
+	return 0;
 }
 
 SHELL_CMD_REGISTER(reload, NULL, "Reload settings", cmd_reload);
