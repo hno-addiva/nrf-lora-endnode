@@ -1,0 +1,5 @@
+device NRF5340_XXAA_APP
+connection USB
+selectinterface SWD
+speed 4000
+connect
